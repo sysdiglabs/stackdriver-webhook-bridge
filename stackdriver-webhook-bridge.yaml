@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stackdriver-webhook-bridge
+  labels:
+    app: stackdriver-webhook-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stackdriver-webhook-bridge
+  template:
+    metadata:
+      labels:
+        app: stackdriver-webhook-bridge
+    spec:
+      volumes:
+        - name: google-cloud-key
+          secret:
+            secretName: stackdriver-webhook-bridge
+      containers:
+        - name: stackdriver-webhook-bridge
+          image: sysdiglabs/stackdriver-webhook-bridge
+          volumeMounts:
+            - name: google-cloud-key
+              mountPath: /var/secrets/google
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
