@@ -36,3 +36,7 @@ The [Makefile](./Makefile) has `binary`, `image`, and `test` targets. There are 
 
 GKE Uses a K8s Audit Policy that emits a more limited set of information than the audit policy recommended by Sysdig. In particular, the following Rules from [k8s_audit_rules.yaml](https://github.com/falcosecurity/falco/blob/dev/rules/k8s_audit_rules.yaml) will not trigger:
 * Create/Modify Configmap With Private Credentials: The contents of configmaps are not included in audit logs, so the contents can not be examined for sensitive information.
+
+## See Also
+
+If you're rather use google pub/sub to receive stackdriver logs and forward them to a webhook, check out https://github.com/codeonline-io/falco-gke-audit-bridge.
