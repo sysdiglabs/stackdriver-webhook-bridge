@@ -8,23 +8,23 @@ These instructions assume you already have created a cluster and have configured
 
 1. Create a google cloud (not k8s) service account and key that has the ability to read logs:
 
- ```
- $ gcloud iam service-accounts create swb-logs-reader --description "Service account used by stackdriver-webhook-bridge" --display-name "stackdriver-webhook-bridge logs reader"
- $ gcloud projects add-iam-policy-binding <your gce project id> --member serviceAccount:swb-logs-reader@<your gce project id>.iam.gserviceaccount.com --role 'roles/logging.viewer'
- $ gcloud iam service-accounts keys create $HOME/swb-logs-reader-key.json --iam-account swb-logs-reader@<your gce project id>.iam.gserviceaccount.com
- ```
+    ```
+    $ gcloud iam service-accounts create swb-logs-reader --description "Service account used by stackdriver-webhook-bridge" --display-name "stackdriver-webhook-bridge logs reader"
+    $ gcloud projects add-iam-policy-binding <your gce project id> --member serviceAccount:swb-logs-reader@<your gce project id>.iam.gserviceaccount.com --role 'roles/logging.viewer'
+    $ gcloud iam service-accounts keys create $HOME/swb-logs-reader-key.json --iam-account swb-logs-reader@<your gce project id>.iam.gserviceaccount.com
+    ```
 
 1. Create a k8s secret containing the service account keys:
 
- ```
- kubectl create secret generic stackdriver-webhook-bridge --from-file=key.json=$HOME/swb-logs-reader-key.json
- ```
+    ```
+    kubectl create secret generic stackdriver-webhook-bridge --from-file=key.json=$HOME/swb-logs-reader-key.json
+    ```
 
 1. Deploy the bridge program to your cluster using the provided [stackdriver-webhook-bridge.yaml](./stackdriver-webhook-bridge.yaml) file:
 
- ```
- kubectl apply -f stackdriver-webhook-bridge.yaml -n sysdig-agent
- ```
+    ```
+    kubectl apply -f stackdriver-webhook-bridge.yaml -n sysdig-agent
+    ```
 
 The bridge program routes audit events to the domain name `sysdig-agent.sysdig-agent.svc.cluster.local`, which corresponds to the sysdig-agent service you created when you deployed the agent.
 
