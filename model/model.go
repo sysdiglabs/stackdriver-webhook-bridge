@@ -28,6 +28,7 @@ type Config struct {
 	LogfileName         string
 	PollInterval        time.Duration
 	MaxAuditEventsBatch int
+	LogLevel            string
 }
 
 func NewConfig() *Config {
