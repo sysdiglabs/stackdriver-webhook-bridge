@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -30,9 +31,17 @@ func main() {
 	flag.StringVar(&cfg.LogfileName, "logfile", "", "if set, write all log entries to provided file")
 	flag.StringVar(&cfg.OutfileName, "outfile", "", "if set, also append converted audit logs to provided file")
 	flag.DurationVar(&cfg.PollInterval, "poll_interval", dur, "poll interval for log messages")
+	flag.StringVar(&cfg.LogLevel, "log_level", "info", "log level")
 
 	log.SetLevel(log.InfoLevel)
 	flag.Parse()
+
+	level, err := log.ParseLevel(strings.ToUpper(cfg.LogLevel))
+	if err != nil {
+		log.Fatalf("Could not parse log level: %v", err)
+	}
+
+	log.SetLevel(level)
 
 	ctx := context.Background()
 
