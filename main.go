@@ -66,10 +66,7 @@ func main() {
 	}()
 
 	for {
-		curTime, err = pollr.PollLogsSendEvents(curTime)
-		if err != nil {
-			log.Errorf("Could not poll/convert/send events: %v", err)
-		}
+		curTime = pollr.PollLogsSendEvents(curTime)
 		go func() {
 			time.Sleep(cfg.PollInterval)
 			loopChan <- "timeout"

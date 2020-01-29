@@ -147,7 +147,7 @@ func (p *Poller) sendAuditEventsBatch(auditEvents []*auditv1.Event) error {
 	return nil
 }
 
-func (p *Poller) PollLogsSendEvents(curTime time.Time) (time.Time, error) {
+func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 
 	timeStr := curTime.Format(time.RFC3339)
 	filter := fmt.Sprintf("logName=\"projects/%s/logs/cloudaudit.googleapis.com%%2Factivity\" AND resource.type=\"k8s_cluster\" AND timestamp >= \"%s\"", p.project, timeStr)
@@ -179,14 +179,16 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) (time.Time, error) {
 		var auditPayload *audit.AuditLog
 		var ok bool
 		if auditPayload, ok = entry.Payload.(*audit.AuditLog); !ok {
-			return curTime, fmt.Errorf("Could not extract payload as audit payload")
+			log.Errorf("Could not extract payload as audit payload")
+			continue
 		}
 
 		if p.logfile != nil {
 			auditStr, err := p.marshaler.MarshalToString(auditPayload)
 
 			if err != nil {
-				return curTime, fmt.Errorf("Could not serialize audit payload: %v", err)
+				log.Errorf("Could not serialize audit payload: %v", err)
+				continue
 			}
 
 			savedLogEntry := &model.SavedLoggingEntry{
@@ -196,7 +198,8 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) (time.Time, error) {
 
 			entryStr, err = json.Marshal(savedLogEntry)
 			if err != nil {
-				return curTime, fmt.Errorf("Could not convert log entry to json string: %v", err)
+				log.Errorf("Could not convert log entry to json string: %v", err)
+				continue
 			}
 
 			if p.logfile != nil {
@@ -206,18 +209,21 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) (time.Time, error) {
 
 				_, err = p.logfile.Write(entryStr)
 				if err != nil {
-					return curTime, fmt.Errorf("Could not write log entry to file %s: %v", p.cfg.LogfileName, err)
+					log.Errorf("Could not write log entry to file %s: %v", p.cfg.LogfileName, err)
+					continue
 				}
 			}
 		}
 
 		auditEvent, err := converter.ConvertLogEntrytoAuditEvent(entry, auditPayload)
 		if err != nil {
-			return curTime, fmt.Errorf("Could not convert log entry to audit object: %v", err)
+			log.Errorf("Could not convert log entry to audit object: %v", err)
+			continue
 		}
 		auditStr, err := json.Marshal(auditEvent)
 		if err != nil {
-			return curTime, fmt.Errorf("Could not serialize audit object: %v", err)
+			log.Errorf("Could not serialize audit object: %v", err)
+			continue
 		}
 		log.Debugf("Got audit event: %s", string(auditStr))
 
@@ -225,7 +231,8 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) (time.Time, error) {
 			auditStr = append(auditStr, '\n')
 			_, err = p.outfile.Write(auditStr)
 			if err != nil {
-				return curTime, fmt.Errorf("Could not write audit event to file %s: %v", p.cfg.OutfileName, err)
+				log.Errorf("Could not write audit event to file %s: %v", p.cfg.OutfileName, err)
+				continue
 			}
 		}
 
@@ -233,20 +240,21 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) (time.Time, error) {
 
 		if len(auditEvents) >= p.cfg.MaxAuditEventsBatch {
 			err = p.sendAuditEventsBatch(auditEvents)
-			if err != nil {
-				return curTime, fmt.Errorf("Could not send batch of audit events: %v", err)
-			}
 			auditEvents = nil
+			if err != nil {
+				log.Errorf("Could not send batch of audit events: %v", err)
+				continue
+			}
 		}
 	}
 
 	if len(auditEvents) > 0 {
 		err := p.sendAuditEventsBatch(auditEvents)
-		if err != nil {
-			return curTime, fmt.Errorf("Could not send batch of audit events: %v", err)
-		}
 		auditEvents = nil
+		if err != nil {
+			log.Errorf("Could not send batch of audit events: %v", err)
+		}
 	}
 
-	return curTime, nil
+	return curTime
 }
