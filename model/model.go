@@ -27,6 +27,7 @@ type Config struct {
 	OutfileName         string
 	LogfileName         string
 	PollInterval        time.Duration
+	LagInterval         time.Duration
 	MaxAuditEventsBatch int
 	LogLevel            string
 }
@@ -37,7 +38,8 @@ func NewConfig() *Config {
 		ProjectArg:          "",
 		OutfileName:         "",
 		LogfileName:         "",
-		PollInterval:        5,
+		PollInterval:        5 * time.Second,
+		LagInterval:         30 * time.Second,
 		MaxAuditEventsBatch: 100,
 	}
 }
