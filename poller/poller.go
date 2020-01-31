@@ -150,10 +150,12 @@ func (p *Poller) sendAuditEventsBatch(auditEvents []*auditv1.Event) error {
 func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 
 	timeStr := curTime.Format(time.RFC3339)
-	filter := fmt.Sprintf("logName=\"projects/%s/logs/cloudaudit.googleapis.com%%2Factivity\" AND resource.type=\"k8s_cluster\" AND timestamp >= \"%s\"", p.project, timeStr)
+	lagTime := time.Now().UTC().Add(-1 * p.cfg.LagInterval)
+	lagStr := lagTime.Format(time.RFC3339)
+	filter := fmt.Sprintf("logName=\"projects/%s/logs/cloudaudit.googleapis.com%%2Factivity\" AND resource.type=\"k8s_cluster\" AND timestamp >= \"%s\" AND timestamp <= \"%s\"", p.project, timeStr, lagStr)
 	it := p.client.Entries(p.ctx, logadmin.Filter(filter))
 
-	log.Debugf("Fetching all logs since %v, filter=%s...", curTime, filter)
+	log.Debugf("Fetching all logs between %v and %v, filter=%s...", curTime, lagTime, filter)
 
 	var entryStr []byte
 
