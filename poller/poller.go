@@ -190,7 +190,7 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 
 	for entry, err := it.Next(); err != iterator.Done; entry, err = it.Next() {
 
-		log.Debugf("Got log entry: %+v", entry)
+		log.Tracef("Got log entry: %+v", entry)
 
 		if entry == nil {
 			// Just prevents runaway loop in case of misconfiguration
@@ -232,7 +232,7 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 			}
 
 			if p.logfile != nil {
-				log.Debugf("saving log entry string: %s", string(entryStr))
+				log.Tracef("saving log entry string: %s", string(entryStr))
 
 				entryStr = append(entryStr, '\n')
 
@@ -254,7 +254,7 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 			log.Errorf("Could not serialize audit object: %v", err)
 			continue
 		}
-		log.Debugf("Got audit event: %s", string(auditStr))
+		log.Tracef("Got audit event: %s", string(auditStr))
 
 		if p.outfile != nil {
 			auditStr = append(auditStr, '\n')
