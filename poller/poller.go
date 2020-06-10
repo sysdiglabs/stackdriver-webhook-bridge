@@ -13,6 +13,7 @@ import (
 	"cloud.google.com/go/logging/logadmin"
 
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/sysdiglabs/stackdriver-webhook-bridge/config"
 	"github.com/sysdiglabs/stackdriver-webhook-bridge/converter"
 	"github.com/sysdiglabs/stackdriver-webhook-bridge/model"
 	"google.golang.org/api/iterator"
@@ -26,7 +27,7 @@ type Poller struct {
 	ctx        context.Context
 	client     *logadmin.Client
 	httpClient *http.Client
-	cfg        *model.Config
+	cfg        *config.Config
 	project    string
 	cluster    string
 	marshaler  *jsonpb.Marshaler
@@ -34,7 +35,7 @@ type Poller struct {
 	outfile    *os.File
 }
 
-func NewPoller(ctx context.Context, cfg *model.Config) (*Poller, error) {
+func NewPoller(ctx context.Context, cfg *config.Config) (*Poller, error) {
 
 	p := &Poller{
 		ctx:        ctx,
