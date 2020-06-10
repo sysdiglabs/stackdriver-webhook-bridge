@@ -23,7 +23,7 @@ type SavedLoggingEntry struct {
 
 type Config struct {
 	Url                 string
-	ProjectArg          string
+	ProjectId           string
 	ClusterName         string
 	OutfileName         string
 	LogfileName         string
@@ -36,7 +36,7 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		Url:                 "http://sysdig-agent.sysdig-agent.svc.cluster.local:7765/k8s_audit",
-		ProjectArg:          "",
+		ProjectId:          "",
 		OutfileName:         "",
 		LogfileName:         "",
 		PollInterval:        5 * time.Second,

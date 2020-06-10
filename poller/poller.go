@@ -44,9 +44,9 @@ func NewPoller(ctx context.Context, cfg *model.Config) (*Poller, error) {
 	}
 
 	var err error
-	if cfg.ProjectArg != "" {
-		log.Infof("Using project id from config: %s", cfg.ProjectArg)
-		p.project = cfg.ProjectArg
+	if cfg.ProjectId != "" {
+		log.Infof("Using project id from config: %s", cfg.ProjectId)
+		p.project = cfg.ProjectId
 	} else {
 		log.Debugf("Project blank, using metadata service to find project name...")
 
