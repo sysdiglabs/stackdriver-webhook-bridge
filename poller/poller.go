@@ -28,6 +28,7 @@ type Poller struct {
 	httpClient *http.Client
 	cfg        *model.Config
 	project    string
+	cluster    string
 	marshaler  *jsonpb.Marshaler
 	logfile    *os.File
 	outfile    *os.File
@@ -50,33 +51,31 @@ func NewPoller(ctx context.Context, cfg *model.Config) (*Poller, error) {
 		log.Debugf("Project blank, using metadata service to find project name...")
 
 		url := "http://metadata.google.internal/computeMetadata/v1/project/project-id"
-		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
 
-		if err != nil {
-			return nil, fmt.Errorf("Could not construct http request to %s: %v", url, err)
-		}
-
-		req.Header.Set("Metadata-Flavor", "Google")
-
-		resp, err := p.httpClient.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("Could not GET metadata from %s: %v", url, err)
-		}
+		p.project, err = p.fetchUrl(url)
 
 		if err != nil {
 			return nil, fmt.Errorf("Error fetching project id from metadata service: %v", err)
 		}
 
-		defer resp.Body.Close()
+		log.Infof("Using project id from metadata service: %s", p.project)
+	}
 
-		body, _ := ioutil.ReadAll(resp.Body)
+	if cfg.ClusterName != "" {
+		log.Infof("Using cluster name from config: %s", cfg.ClusterName)
+		p.cluster = cfg.ClusterName
+	} else {
+		log.Debugf("Cluster name blank, using metadata service to find cluster name...")
 
-		if resp.StatusCode != 200 {
-			return nil, fmt.Errorf("Non-200 response fetching project id from metadata service: status=%s body=%s", resp.Status, body)
+		url := "http://metadata.google.internal/computeMetadata/v1/instance/attributes/cluster-name"
+
+		p.cluster, err = p.fetchUrl(url)
+
+		if err != nil {
+			return nil, fmt.Errorf("Error fetching cluster name from metadata service: %v", err)
 		}
 
-		log.Infof("Using project id from metadata service: %s", body)
-		p.project = string(body)
+		log.Infof("Using cluster name from metadata service: %s", p.cluster)
 	}
 
 	if cfg.LogfileName != "" {
@@ -104,6 +103,31 @@ func NewPoller(ctx context.Context, cfg *model.Config) (*Poller, error) {
 	log.Infof("Will post events to webhook: %s", cfg.Url)
 
 	return p, nil
+}
+
+func (p *Poller) fetchUrl(url string) (string, error) {
+	req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
+
+	if err != nil {
+		return "", fmt.Errorf("Could not construct http request to %s: %v", url, err)
+	}
+
+	req.Header.Set("Metadata-Flavor", "Google")
+
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("Could not GET %s: %v", url, err)
+	}
+
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("Non-200 response fetching response from %s: status=%s body=%s", url, resp.Status, body)
+	}
+
+	return string(body), nil
 }
 
 func (p *Poller) Close() {
@@ -152,7 +176,10 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 	timeStr := curTime.Format(time.RFC3339)
 	lagTime := time.Now().UTC().Add(-1 * p.cfg.LagInterval)
 	lagStr := lagTime.Format(time.RFC3339)
-	filter := fmt.Sprintf("logName=\"projects/%s/logs/cloudaudit.googleapis.com%%2Factivity\" AND resource.type=\"k8s_cluster\" AND timestamp >= \"%s\" AND timestamp <= \"%s\"", p.project, timeStr, lagStr)
+	filter := fmt.Sprintf("logName=\"projects/%s/logs/cloudaudit.googleapis.com%%2Factivity\" AND " +
+		"resource.type=\"k8s_cluster\" AND resource.labels.cluster_name=\"%s\" AND " +
+		"timestamp >= \"%s\" AND timestamp <= \"%s\"", p.project, p.cluster, timeStr, lagStr)
+
 	it := p.client.Entries(p.ctx, logadmin.Filter(filter))
 
 	log.Debugf("Fetching all logs between %v and %v, filter=%s...", curTime, lagTime, filter)

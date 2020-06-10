@@ -24,6 +24,7 @@ type SavedLoggingEntry struct {
 type Config struct {
 	Url                 string
 	ProjectArg          string
+	ClusterName         string
 	OutfileName         string
 	LogfileName         string
 	PollInterval        time.Duration

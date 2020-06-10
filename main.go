@@ -23,6 +23,7 @@ func main() {
 
 	flag.StringVar(&cfg.Url, "url", "http://sysdig-agent.sysdig-agent.svc.cluster.local:7765/k8s_audit", "send generated events to this url")
 	flag.StringVar(&cfg.ProjectArg, "project", "", "read logs from provided project. If blank, use metadata service to find project id")
+	flag.StringVar(&cfg.ClusterName, "cluster", "", "read logs for provided cluster name. If blank, use metadata service to find cluster name")
 	flag.StringVar(&cfg.LogfileName, "logfile", "", "if set, write all log entries to provided file")
 	flag.StringVar(&cfg.OutfileName, "outfile", "", "if set, also append converted audit logs to provided file")
 	flag.DurationVar(&cfg.PollInterval, "poll_interval", 5 * time.Second, "poll interval for log messages")
