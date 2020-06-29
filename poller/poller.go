@@ -33,6 +33,7 @@ type Poller struct {
 	marshaler  *jsonpb.Marshaler
 	logfile    *os.File
 	outfile    *os.File
+	numFetchErrors  uint64
 }
 
 func NewPoller(ctx context.Context, cfg *config.Config) (*Poller, error) {
@@ -189,9 +190,29 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 
 	var auditEvents []*auditv1.Event
 
-	for entry, err := it.Next(); err != iterator.Done; entry, err = it.Next() {
+	for {
+		entry, err := it.Next()
+
+		log.Tracef("Response from it.Next() err=%v", err)
+
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			p.numFetchErrors++
+			// Suppress the first warning when fetching logs.
+			if p.numFetchErrors == 1 {
+				log.Debugf("Got error %v when fetching logs, will retry", err)
+			} else {
+				log.Warnf("Got error %v when fetching logs (%d errors so far), will retry", err, p.numFetchErrors)
+			}
+			break
+		}
 
 		log.Tracef("Got log entry: %+v", entry)
+
+		p.numFetchErrors = 0
 
 		if entry == nil {
 			// Just prevents runaway loop in case of misconfiguration
