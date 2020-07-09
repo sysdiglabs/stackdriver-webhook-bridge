@@ -51,4 +51,4 @@ In GKE, the audit event is missing those request parameters. This doesn't affect
 
 ## See Also
 
-If you're rather use google pub/sub to receive stackdriver logs and forward them to a webhook, check out https://github.com/codeonline-io/falco-gke-audit-bridge.
+If you would rather use google pub/sub to receive stackdriver logs and forward them to a webhook, check out https://github.com/codeonline-io/falco-gke-audit-bridge.
