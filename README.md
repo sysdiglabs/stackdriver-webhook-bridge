@@ -34,9 +34,21 @@ The [Makefile](./Makefile) has `binary`, `image`, and `test` targets. There are 
 
 ## Limitations
 
-GKE Uses a K8s Audit Policy that emits a more limited set of information than the audit policy recommended by Sysdig. In particular, the following Rules from [k8s_audit_rules.yaml](https://github.com/falcosecurity/falco/blob/dev/rules/k8s_audit_rules.yaml) will not trigger:
+### Audit Events Do Not Contain requestObject
+
+GKE Uses a K8s Audit Policy that emits a more limited set of information than the audit policy recommended by Sysdig. In particular, audit events for configmaps generally do not contain a `requestObject` field that contains the object that's being created/modified. As a result, the following Rules from [k8s_audit_rules.yaml](https://github.com/falcosecurity/falco/blob/dev/rules/k8s_audit_rules.yaml) will not trigger:
 * Create/Modify Configmap With Private Credentials: The contents of configmaps are not included in audit logs, so the contents can not be examined for sensitive information.
+
+### Pod Exec Does Not Include Command/Container
+
+For many K8s distributions, an audit event representing a pod exec includes the command and specific container as arguments to the requestURI, for example:
+
+```
+"requestURI":"/api/v1/namespaces/default/pods/nginx-deployment-7998647bdf-phvq7/exec?command=bash&container=nginx1&container=nginx1&stdin=true&stdout=true&tty=true
+```
+
+In GKE, the audit event is missing those request parameters. This doesn't affect any of the Falco rules in [k8s_audit_rules.yaml](https://github.com/falcosecurity/falco/blob/dev/rules/k8s_audit_rules.yaml), but does limit the information that can be returned in the outputs of rules.
 
 ## See Also
 
-If you're rather use google pub/sub to receive stackdriver logs and forward them to a webhook, check out https://github.com/codeonline-io/falco-gke-audit-bridge.
+If you would rather use google pub/sub to receive stackdriver logs and forward them to a webhook, check out https://github.com/codeonline-io/falco-gke-audit-bridge.
