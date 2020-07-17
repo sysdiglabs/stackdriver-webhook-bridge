@@ -1,0 +1,8 @@
+url: my-file-url
+project: my-file-project
+cluster: my-file-cluster
+logfile: my-file-logfile
+outfile: my-file-outfile
+poll_interval: 21s
+lag_interval: 48s
+log_level: warning

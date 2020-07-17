@@ -1,8 +1,6 @@
 package model
 
 import (
-	"time"
-
 	"cloud.google.com/go/logging"
 )
 
@@ -21,25 +19,3 @@ type SavedLoggingEntry struct {
 	AuditPayload string
 }
 
-type Config struct {
-	Url                 string
-	ProjectArg          string
-	OutfileName         string
-	LogfileName         string
-	PollInterval        time.Duration
-	LagInterval         time.Duration
-	MaxAuditEventsBatch int
-	LogLevel            string
-}
-
-func NewConfig() *Config {
-	return &Config{
-		Url:                 "http://sysdig-agent.sysdig-agent.svc.cluster.local:7765/k8s_audit",
-		ProjectArg:          "",
-		OutfileName:         "",
-		LogfileName:         "",
-		PollInterval:        5 * time.Second,
-		LagInterval:         30 * time.Second,
-		MaxAuditEventsBatch: 100,
-	}
-}

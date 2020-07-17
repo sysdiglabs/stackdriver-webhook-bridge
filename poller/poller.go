@@ -13,6 +13,7 @@ import (
 	"cloud.google.com/go/logging/logadmin"
 
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/sysdiglabs/stackdriver-webhook-bridge/config"
 	"github.com/sysdiglabs/stackdriver-webhook-bridge/converter"
 	"github.com/sysdiglabs/stackdriver-webhook-bridge/model"
 	"google.golang.org/api/iterator"
@@ -26,14 +27,16 @@ type Poller struct {
 	ctx        context.Context
 	client     *logadmin.Client
 	httpClient *http.Client
-	cfg        *model.Config
+	cfg        *config.Config
 	project    string
+	cluster    string
 	marshaler  *jsonpb.Marshaler
 	logfile    *os.File
 	outfile    *os.File
+	numFetchErrors  uint64
 }
 
-func NewPoller(ctx context.Context, cfg *model.Config) (*Poller, error) {
+func NewPoller(ctx context.Context, cfg *config.Config) (*Poller, error) {
 
 	p := &Poller{
 		ctx:        ctx,
@@ -43,40 +46,38 @@ func NewPoller(ctx context.Context, cfg *model.Config) (*Poller, error) {
 	}
 
 	var err error
-	if cfg.ProjectArg != "" {
-		log.Infof("Using project id from config: %s", cfg.ProjectArg)
-		p.project = cfg.ProjectArg
+	if cfg.ProjectId != "" {
+		log.Infof("Using project id from config: %s", cfg.ProjectId)
+		p.project = cfg.ProjectId
 	} else {
 		log.Debugf("Project blank, using metadata service to find project name...")
 
 		url := "http://metadata.google.internal/computeMetadata/v1/project/project-id"
-		req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
 
-		if err != nil {
-			return nil, fmt.Errorf("Could not construct http request to %s: %v", url, err)
-		}
-
-		req.Header.Set("Metadata-Flavor", "Google")
-
-		resp, err := p.httpClient.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("Could not GET metadata from %s: %v", url, err)
-		}
+		p.project, err = p.fetchUrl(url)
 
 		if err != nil {
 			return nil, fmt.Errorf("Error fetching project id from metadata service: %v", err)
 		}
 
-		defer resp.Body.Close()
+		log.Infof("Using project id from metadata service: %s", p.project)
+	}
 
-		body, _ := ioutil.ReadAll(resp.Body)
+	if cfg.ClusterName != "" {
+		log.Infof("Using cluster name from config: %s", cfg.ClusterName)
+		p.cluster = cfg.ClusterName
+	} else {
+		log.Debugf("Cluster name blank, using metadata service to find cluster name...")
 
-		if resp.StatusCode != 200 {
-			return nil, fmt.Errorf("Non-200 response fetching project id from metadata service: status=%s body=%s", resp.Status, body)
+		url := "http://metadata.google.internal/computeMetadata/v1/instance/attributes/cluster-name"
+
+		p.cluster, err = p.fetchUrl(url)
+
+		if err != nil {
+			return nil, fmt.Errorf("Error fetching cluster name from metadata service: %v", err)
 		}
 
-		log.Infof("Using project id from metadata service: %s", body)
-		p.project = string(body)
+		log.Infof("Using cluster name from metadata service: %s", p.cluster)
 	}
 
 	if cfg.LogfileName != "" {
@@ -104,6 +105,31 @@ func NewPoller(ctx context.Context, cfg *model.Config) (*Poller, error) {
 	log.Infof("Will post events to webhook: %s", cfg.Url)
 
 	return p, nil
+}
+
+func (p *Poller) fetchUrl(url string) (string, error) {
+	req, err := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
+
+	if err != nil {
+		return "", fmt.Errorf("Could not construct http request to %s: %v", url, err)
+	}
+
+	req.Header.Set("Metadata-Flavor", "Google")
+
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("Could not GET %s: %v", url, err)
+	}
+
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("Non-200 response fetching response from %s: status=%s body=%s", url, resp.Status, body)
+	}
+
+	return string(body), nil
 }
 
 func (p *Poller) Close() {
@@ -152,7 +178,10 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 	timeStr := curTime.Format(time.RFC3339)
 	lagTime := time.Now().UTC().Add(-1 * p.cfg.LagInterval)
 	lagStr := lagTime.Format(time.RFC3339)
-	filter := fmt.Sprintf("logName=\"projects/%s/logs/cloudaudit.googleapis.com%%2Factivity\" AND resource.type=\"k8s_cluster\" AND timestamp >= \"%s\" AND timestamp <= \"%s\"", p.project, timeStr, lagStr)
+	filter := fmt.Sprintf("logName=\"projects/%s/logs/cloudaudit.googleapis.com%%2Factivity\" AND " +
+		"resource.type=\"k8s_cluster\" AND resource.labels.cluster_name=\"%s\" AND " +
+		"timestamp >= \"%s\" AND timestamp <= \"%s\"", p.project, p.cluster, timeStr, lagStr)
+
 	it := p.client.Entries(p.ctx, logadmin.Filter(filter))
 
 	log.Debugf("Fetching all logs between %v and %v, filter=%s...", curTime, lagTime, filter)
@@ -161,9 +190,29 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 
 	var auditEvents []*auditv1.Event
 
-	for entry, err := it.Next(); err != iterator.Done; entry, err = it.Next() {
+	for {
+		entry, err := it.Next()
 
-		log.Debugf("Got log entry: %+v", entry)
+		log.Tracef("Response from it.Next() err=%v", err)
+
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			p.numFetchErrors++
+			// Suppress the first warning when fetching logs.
+			if p.numFetchErrors == 1 {
+				log.Debugf("Got error %v when fetching logs, will retry", err)
+			} else {
+				log.Warnf("Got error %v when fetching logs (%d errors so far), will retry", err, p.numFetchErrors)
+			}
+			break
+		}
+
+		log.Tracef("Got log entry: %+v", entry)
+
+		p.numFetchErrors = 0
 
 		if entry == nil {
 			// Just prevents runaway loop in case of misconfiguration
@@ -205,7 +254,7 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 			}
 
 			if p.logfile != nil {
-				log.Debugf("saving log entry string: %s", string(entryStr))
+				log.Tracef("saving log entry string: %s", string(entryStr))
 
 				entryStr = append(entryStr, '\n')
 
@@ -227,7 +276,7 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 			log.Errorf("Could not serialize audit object: %v", err)
 			continue
 		}
-		log.Debugf("Got audit event: %s", string(auditStr))
+		log.Tracef("Got audit event: %s", string(auditStr))
 
 		if p.outfile != nil {
 			auditStr = append(auditStr, '\n')

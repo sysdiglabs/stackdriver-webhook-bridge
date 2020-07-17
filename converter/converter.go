@@ -24,7 +24,8 @@ func ConvertLogEntrytoAuditEvent(logEntry *logging.Entry, auditPayload *audit.Au
 
 	m := &jsonpb.Marshaler{}
 
-	log.Debugf("Will try to convert: logEntry=%+v, auditPayload=%+v\n", logEntry, auditPayload)
+	log.Debugf("In ConvertLogEntrytoAuditEvent()")
+	log.Tracef("Will try to convert: logEntry=%+v, auditPayload=%+v\n", logEntry, auditPayload)
 
 	methodNameParts := strings.Split(auditPayload.MethodName, ".")
 
