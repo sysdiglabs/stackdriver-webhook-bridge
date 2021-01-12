@@ -79,4 +79,8 @@ spec:
               mountPath: "/opt/swb/config"
           env:
             - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /var/secrets/google/key.json
+              value: /var/secrets/google/key.json          livenessProbe:
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8182

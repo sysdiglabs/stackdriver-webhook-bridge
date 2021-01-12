@@ -21,6 +21,7 @@ type Config struct {
 	LagInterval         time.Duration
 	MaxAuditEventsBatch int
 	PrometheusPort      int
+	ApiPort             int
 	LogLevel            string
 	vcfg                *viper.Viper
 }
@@ -38,6 +39,7 @@ func New(configDir string, commandLine *pflag.FlagSet) (*Config, error) {
 	vcfg.SetDefault("lag_interval", "30s")
 	vcfg.SetDefault("max-audit-events-batch", 100)
 	vcfg.SetDefault("prometheus.port", 25000)
+	vcfg.SetDefault("api.port", 8182)
 	vcfg.SetDefault("log_level", "info")
 
 	c := &Config{
@@ -73,6 +75,7 @@ func (c *Config) UpdateValues() {
 	c.LagInterval, _ = time.ParseDuration(c.vcfg.GetString("lag_interval"))
 	c.MaxAuditEventsBatch = c.vcfg.GetInt("max-audit-events-batch")
 	c.PrometheusPort = c.vcfg.GetInt("prometheus.port")
+	c.ApiPort = c.vcfg.GetInt("api.port")
 	c.LogLevel = c.vcfg.GetString("log_level")
 }
 
