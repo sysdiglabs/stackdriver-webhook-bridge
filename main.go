@@ -10,6 +10,7 @@ import (
 
 	"github.com/sysdiglabs/stackdriver-webhook-bridge/config"
 	"github.com/sysdiglabs/stackdriver-webhook-bridge/poller"
+	"github.com/sysdiglabs/stackdriver-webhook-bridge/prometheus"
 
 	pflag "github.com/spf13/pflag"
 	log "github.com/sirupsen/logrus"
@@ -73,6 +74,7 @@ func main() {
 		loopChan <- "exit"
 	}()
 
+	go prometheus.ExposeMetricsEndpoint(cfg.PrometheusPort)
 	for {
 		curTime = pollr.PollLogsSendEvents(curTime)
 		go func() {

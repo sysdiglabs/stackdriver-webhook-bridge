@@ -20,6 +20,7 @@ type Config struct {
 	PollInterval        time.Duration
 	LagInterval         time.Duration
 	MaxAuditEventsBatch int
+	PrometheusPort      int
 	LogLevel            string
 	vcfg                *viper.Viper
 }
@@ -36,6 +37,7 @@ func New(configDir string, commandLine *pflag.FlagSet) (*Config, error) {
 	vcfg.SetDefault("poll_interval", "5s")
 	vcfg.SetDefault("lag_interval", "30s")
 	vcfg.SetDefault("max-audit-events-batch", 100)
+	vcfg.SetDefault("prometheus.port", 25000)
 	vcfg.SetDefault("log_level", "info")
 
 	c := &Config{
@@ -70,6 +72,7 @@ func (c *Config) UpdateValues() {
 	c.PollInterval, _ = time.ParseDuration(c.vcfg.GetString("poll_interval"))
 	c.LagInterval, _ = time.ParseDuration(c.vcfg.GetString("lag_interval"))
 	c.MaxAuditEventsBatch = c.vcfg.GetInt("max-audit-events-batch")
+	c.PrometheusPort = c.vcfg.GetInt("prometheus.port")
 	c.LogLevel = c.vcfg.GetString("log_level")
 }
 

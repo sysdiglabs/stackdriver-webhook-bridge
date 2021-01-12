@@ -200,6 +200,7 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 		}
 
 		if err != nil {
+			promLogFetchError.Inc()
 			p.numFetchErrors++
 			// Suppress the first warning when fetching logs.
 			if p.numFetchErrors == 1 {
@@ -225,11 +226,14 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 			continue
 		}
 
+		promLogEntryIn.Inc()
+
 		curTime = entry.Timestamp
 
 		var auditPayload *audit.AuditLog
 		var ok bool
 		if auditPayload, ok = entry.Payload.(*audit.AuditLog); !ok {
+			promAuditPayloadExtractError.Inc()
 			log.Errorf("Could not extract payload as audit payload")
 			continue
 		}
@@ -268,11 +272,13 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 
 		auditEvent, err := converter.ConvertLogEntrytoAuditEvent(entry, auditPayload)
 		if err != nil {
+			promAuditPayloadConvertError.Inc()
 			log.Errorf("Could not convert log entry to audit object: %v", err)
 			continue
 		}
 		auditStr, err := json.Marshal(auditEvent)
 		if err != nil {
+			promAuditEventMarshalError.Inc()
 			log.Errorf("Could not serialize audit object: %v", err)
 			continue
 		}
@@ -291,20 +297,26 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 
 		if len(auditEvents) >= p.cfg.MaxAuditEventsBatch {
 			err = p.sendAuditEventsBatch(auditEvents)
-			auditEvents = nil
 			if err != nil {
+				promAuditEventSendError.Add(float64(len(auditEvents)))
 				log.Errorf("Could not send batch of audit events: %v", err)
+				auditEvents = nil
 				continue
 			}
+			promAuditEventOut.Add(float64(len(auditEvents)))
+			auditEvents = nil
 		}
 	}
 
 	if len(auditEvents) > 0 {
 		err := p.sendAuditEventsBatch(auditEvents)
-		auditEvents = nil
 		if err != nil {
+			promAuditEventSendError.Add(float64(len(auditEvents)))
 			log.Errorf("Could not send batch of audit events: %v", err)
 		}
+
+		promAuditEventOut.Add(float64(len(auditEvents)))
+		auditEvents = nil
 	}
 
 	return curTime
