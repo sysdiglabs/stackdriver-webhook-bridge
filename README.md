@@ -28,6 +28,27 @@ These instructions assume you already have created a cluster and have configured
 
 The bridge program routes audit events to the domain name `sysdig-agent.sysdig-agent.svc.cluster.local`, which corresponds to the sysdig-agent service you created when you deployed the agent.
 
+## K8s Support
+
+### Liveness Probe
+
+The bridge defines a liveness probe on `http://:8182/health`.
+
+### Cpu/Memory Requests/Limits
+
+The bridge defines cpu requests/limits. The default values should work for most environments, but you may want to either increase requests and/or limits based on your cluster size and the amount of k8s audit activity.
+
+### Prometheus Metrics
+
+The brige exposes a prometheus-compatible metrics server on `http://:25000/metrics`. The following bridge metrics are defined:
+* `swb_poller_log_fetch_error`: The number of times the bridge had an error fetching a set of stackdriver logs
+* `swb_poller_log_entry_in`: The number of log entries received
+* `swb_poller_audit_event_out`: The number of audit events successfully passed along to the agent
+* `swb_poller_audit_payload_extract_error`: The number of times the bridge had an error extracting the audit payload from a log entry
+* `swb_poller_audit_payload_convert_error`: The number of times the bridge had an error converting an audit payload to an audit event
+* `swb_poller_audit_event_marshal_error`: The number of times the bridge had an error marshaling an audit event to a json string
+* `swb_poller_audit_event_send_error`: The number of audit events that could not successfully be sent to the agent
+
 ## Development
 
 The [Makefile](./Makefile) has `binary`, `image`, and `test` targets. There are unit tests that test the converter, ensuring that log entries are converted to expected K8s Audit Events.

@@ -2,18 +2,41 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi"
+
 	"github.com/sysdiglabs/stackdriver-webhook-bridge/config"
 	"github.com/sysdiglabs/stackdriver-webhook-bridge/poller"
+	"github.com/sysdiglabs/stackdriver-webhook-bridge/prometheus"
 
 	pflag "github.com/spf13/pflag"
 	log "github.com/sirupsen/logrus"
 )
+
+func StartHealthServer(port int) {
+	router := chi.NewRouter()
+	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ready"))
+	})
+	hostPort := fmt.Sprintf(":%d", port)
+	log.Infof("Starting health server on %s...", hostPort)
+
+	httpServer := &http.Server {
+		Addr: hostPort,
+		Handler: router,
+	}
+
+	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("Cannot start health server: %v", err)
+	}
+}
 
 func main() {
 
@@ -72,6 +95,9 @@ func main() {
 		<-signalChan
 		loopChan <- "exit"
 	}()
+
+	go prometheus.ExposeMetricsEndpoint(cfg.PrometheusPort)
+	go StartHealthServer(cfg.ApiPort)
 
 	for {
 		curTime = pollr.PollLogsSendEvents(curTime)

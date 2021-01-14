@@ -52,6 +52,10 @@ spec:
     metadata:
       labels:
         app: stackdriver-webhook-bridge
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/path: '/metrics'
+        prometheus.io/port: '25000'
     spec:
       volumes:
         - name: google-cloud-key
@@ -64,6 +68,10 @@ spec:
       containers:
         - name: stackdriver-webhook-bridge
           image: sysdiglabs/stackdriver-webhook-bridge
+          ports:
+          - containerPort: 25000
+            name: metrics
+            protocol: TCP
           volumeMounts:
             - name: google-cloud-key
               mountPath: /var/secrets/google
@@ -72,3 +80,14 @@ spec:
           env:
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /var/secrets/google/key.json
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8182

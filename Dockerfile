@@ -9,4 +9,7 @@ RUN make binary
 FROM alpine
 COPY --from=builder /go/src/github.com/sysdiglabs/stackdriver-webhook-bridge/build/stackdriver-webhook-bridge /stackdriver-webhook-bridge
 
+# Use an unprivileged user
+USER 65535
+
 ENTRYPOINT ["/stackdriver-webhook-bridge"]
