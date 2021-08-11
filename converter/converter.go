@@ -20,6 +20,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const ObjectReferenceErrorPrefix = "Could not create ObjectReference from resource name"
+
 func ConvertLogEntrytoAuditEvent(logEntry *logging.Entry, auditPayload *audit.AuditLog) (*auditv1.Event, error) {
 
 	m := &jsonpb.Marshaler{}
@@ -98,7 +100,7 @@ func ConvertLogEntrytoAuditEvent(logEntry *logging.Entry, auditPayload *audit.Au
 			Subresource: resourceNameParts[6],
 		}
 	} else {
-		return nil, fmt.Errorf("Could not create ObjectReference from resource name %s", auditPayload.ResourceName)
+		return nil, fmt.Errorf("%s %s", ObjectReferenceErrorPrefix, auditPayload.ResourceName)
 	}
 
 	// The level is RequestResponse and stage is ResponseComplete by default. We

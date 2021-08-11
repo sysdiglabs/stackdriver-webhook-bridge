@@ -1,9 +1,10 @@
 package config_test
 
 import (
-	pflag "github.com/spf13/pflag"
 	"testing"
 	"time"
+
+	pflag "github.com/spf13/pflag"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/sysdiglabs/stackdriver-webhook-bridge/config"
@@ -20,10 +21,11 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Equal(t, "", cfg.ClusterName)
 	assert.Equal(t, "", cfg.OutfileName)
 	assert.Equal(t, "", cfg.LogfileName)
-	assert.Equal(t,  5 * time.Second, cfg.PollInterval)
-	assert.Equal(t, 30 * time.Second, cfg.LagInterval)
+	assert.Equal(t, 5*time.Second, cfg.PollInterval)
+	assert.Equal(t, 30*time.Second, cfg.LagInterval)
 	assert.Equal(t, 100, cfg.MaxAuditEventsBatch)
 	assert.Equal(t, "info", cfg.LogLevel)
+	assert.Equal(t, false, cfg.SupressObjectConversionErrors)
 }
 
 func TestConfigCommandLineArgsAllArgs(t *testing.T) {
@@ -35,9 +37,10 @@ func TestConfigCommandLineArgsAllArgs(t *testing.T) {
 	testArgs.String("cluster", "", "")
 	testArgs.String("logfile", "", "")
 	testArgs.String("outfile", "", "")
-	testArgs.Duration("poll_interval", 1 * time.Second, "")
-	testArgs.Duration("lag_interval", 1 * time.Second, "")
+	testArgs.Duration("poll_interval", 1*time.Second, "")
+	testArgs.Duration("lag_interval", 1*time.Second, "")
 	testArgs.String("log_level", "", "")
+	testArgs.String("supress_object_conversion_errors", "", "")
 
 	assert.Nil(t, testArgs.Parse([]string{
 		"--url", "some-fake-url",
@@ -48,6 +51,7 @@ func TestConfigCommandLineArgsAllArgs(t *testing.T) {
 		"--poll_interval", "10s",
 		"--lag_interval", "20s",
 		"--log_level", "debug",
+		"--supress_object_conversion_errors", "true",
 	}))
 
 	cfg, err := config.New("", testArgs)
@@ -60,10 +64,11 @@ func TestConfigCommandLineArgsAllArgs(t *testing.T) {
 	assert.Equal(t, "some-fake-cluster", cfg.ClusterName)
 	assert.Equal(t, "some-fake-outfile", cfg.OutfileName)
 	assert.Equal(t, "some-fake-logfile", cfg.LogfileName)
-	assert.Equal(t,  10 * time.Second, cfg.PollInterval)
-	assert.Equal(t, 20 * time.Second, cfg.LagInterval)
+	assert.Equal(t, 10*time.Second, cfg.PollInterval)
+	assert.Equal(t, 20*time.Second, cfg.LagInterval)
 	assert.Equal(t, 100, cfg.MaxAuditEventsBatch)
 	assert.Equal(t, "debug", cfg.LogLevel)
+	assert.Equal(t, true, cfg.SupressObjectConversionErrors)
 }
 
 func TestConfigCommandLineArgsNoArgs(t *testing.T) {
@@ -75,8 +80,8 @@ func TestConfigCommandLineArgsNoArgs(t *testing.T) {
 	testArgs.String("cluster", "", "")
 	testArgs.String("logfile", "", "")
 	testArgs.String("outfile", "", "")
-	testArgs.Duration("poll_interval", 1 * time.Second, "")
-	testArgs.Duration("lag_interval", 1 * time.Second, "")
+	testArgs.Duration("poll_interval", 1*time.Second, "")
+	testArgs.Duration("lag_interval", 1*time.Second, "")
 	testArgs.String("log_level", "", "")
 
 	// Noting that with no args actually set, you retain the defaults
@@ -92,10 +97,11 @@ func TestConfigCommandLineArgsNoArgs(t *testing.T) {
 	assert.Equal(t, "", cfg.ClusterName)
 	assert.Equal(t, "", cfg.OutfileName)
 	assert.Equal(t, "", cfg.LogfileName)
-	assert.Equal(t,  5 * time.Second, cfg.PollInterval)
-	assert.Equal(t, 30 * time.Second, cfg.LagInterval)
+	assert.Equal(t, 5*time.Second, cfg.PollInterval)
+	assert.Equal(t, 30*time.Second, cfg.LagInterval)
 	assert.Equal(t, 100, cfg.MaxAuditEventsBatch)
 	assert.Equal(t, "info", cfg.LogLevel)
+	assert.Equal(t, false, cfg.SupressObjectConversionErrors)
 }
 
 func TestConfigFilePrecedence(t *testing.T) {
@@ -110,8 +116,8 @@ func TestConfigFilePrecedence(t *testing.T) {
 	assert.Equal(t, "my-file-cluster", cfg.ClusterName)
 	assert.Equal(t, "my-file-outfile", cfg.OutfileName)
 	assert.Equal(t, "my-file-logfile", cfg.LogfileName)
-	assert.Equal(t,  21 * time.Second, cfg.PollInterval)
-	assert.Equal(t, 48 * time.Second, cfg.LagInterval)
+	assert.Equal(t, 21*time.Second, cfg.PollInterval)
+	assert.Equal(t, 48*time.Second, cfg.LagInterval)
 	assert.Equal(t, 100, cfg.MaxAuditEventsBatch)
 	assert.Equal(t, "warning", cfg.LogLevel)
 }
@@ -128,12 +134,11 @@ func TestConfigFileNoFile(t *testing.T) {
 	assert.Equal(t, "", cfg.ClusterName)
 	assert.Equal(t, "", cfg.OutfileName)
 	assert.Equal(t, "", cfg.LogfileName)
-	assert.Equal(t,  5 * time.Second, cfg.PollInterval)
-	assert.Equal(t, 30 * time.Second, cfg.LagInterval)
+	assert.Equal(t, 5*time.Second, cfg.PollInterval)
+	assert.Equal(t, 30*time.Second, cfg.LagInterval)
 	assert.Equal(t, 100, cfg.MaxAuditEventsBatch)
 	assert.Equal(t, "info", cfg.LogLevel)
 }
-
 
 func TestConfigCmdlinePrecedence(t *testing.T) {
 
@@ -144,8 +149,8 @@ func TestConfigCmdlinePrecedence(t *testing.T) {
 	testArgs.String("cluster", "", "")
 	testArgs.String("logfile", "", "")
 	testArgs.String("outfile", "", "")
-	testArgs.Duration("poll_interval", 1 * time.Second, "")
-	testArgs.Duration("lag_interval", 1 * time.Second, "")
+	testArgs.Duration("poll_interval", 1*time.Second, "")
+	testArgs.Duration("lag_interval", 1*time.Second, "")
 	testArgs.String("log_level", "", "")
 
 	assert.Nil(t, testArgs.Parse([]string{
@@ -156,7 +161,7 @@ func TestConfigCmdlinePrecedence(t *testing.T) {
 		"--outfile", "some-fake-outfile",
 		"--log_level", "debug",
 	}))
-	
+
 	cfg, err := config.New("./test", nil)
 
 	assert.Nil(t, err)
@@ -167,9 +172,8 @@ func TestConfigCmdlinePrecedence(t *testing.T) {
 	assert.Equal(t, "my-file-cluster", cfg.ClusterName)
 	assert.Equal(t, "my-file-outfile", cfg.OutfileName)
 	assert.Equal(t, "my-file-logfile", cfg.LogfileName)
-	assert.Equal(t,  21 * time.Second, cfg.PollInterval)
-	assert.Equal(t, 48 * time.Second, cfg.LagInterval)
+	assert.Equal(t, 21*time.Second, cfg.PollInterval)
+	assert.Equal(t, 48*time.Second, cfg.LagInterval)
 	assert.Equal(t, 100, cfg.MaxAuditEventsBatch)
 	assert.Equal(t, "warning", cfg.LogLevel)
 }
-

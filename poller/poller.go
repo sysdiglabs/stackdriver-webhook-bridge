@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/logging/logadmin"
@@ -24,16 +25,16 @@ import (
 )
 
 type Poller struct {
-	ctx        context.Context
-	client     *logadmin.Client
-	httpClient *http.Client
-	cfg        *config.Config
-	project    string
-	cluster    string
-	marshaler  *jsonpb.Marshaler
-	logfile    *os.File
-	outfile    *os.File
-	numFetchErrors  uint64
+	ctx            context.Context
+	client         *logadmin.Client
+	httpClient     *http.Client
+	cfg            *config.Config
+	project        string
+	cluster        string
+	marshaler      *jsonpb.Marshaler
+	logfile        *os.File
+	outfile        *os.File
+	numFetchErrors uint64
 }
 
 func NewPoller(ctx context.Context, cfg *config.Config) (*Poller, error) {
@@ -178,8 +179,8 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 	timeStr := curTime.Format(time.RFC3339)
 	lagTime := time.Now().UTC().Add(-1 * p.cfg.LagInterval)
 	lagStr := lagTime.Format(time.RFC3339)
-	filter := fmt.Sprintf("logName=\"projects/%s/logs/cloudaudit.googleapis.com%%2Factivity\" AND " +
-		"resource.type=\"k8s_cluster\" AND resource.labels.cluster_name=\"%s\" AND " +
+	filter := fmt.Sprintf("logName=\"projects/%s/logs/cloudaudit.googleapis.com%%2Factivity\" AND "+
+		"resource.type=\"k8s_cluster\" AND resource.labels.cluster_name=\"%s\" AND "+
 		"timestamp >= \"%s\" AND timestamp <= \"%s\"", p.project, p.cluster, timeStr, lagStr)
 
 	it := p.client.Entries(p.ctx, logadmin.Filter(filter))
@@ -273,7 +274,11 @@ func (p *Poller) PollLogsSendEvents(curTime time.Time) time.Time {
 		auditEvent, err := converter.ConvertLogEntrytoAuditEvent(entry, auditPayload)
 		if err != nil {
 			promAuditPayloadConvertError.Inc()
-			log.Errorf("Could not convert log entry to audit object: %v", err)
+			if p.cfg.SupressObjectConversionErrors && strings.HasPrefix(err.Error(), converter.ObjectReferenceErrorPrefix) {
+				log.Debugf("Could not convert log entry to audit object: %v", err)
+			} else {
+				log.Errorf("Could not convert log entry to audit object: %v", err)
+			}
 			continue
 		}
 		auditStr, err := json.Marshal(auditEvent)
