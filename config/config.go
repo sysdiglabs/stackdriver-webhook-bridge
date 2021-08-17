@@ -6,24 +6,25 @@ import (
 	"path"
 	"time"
 
-	pflag "github.com/spf13/pflag"
 	log "github.com/sirupsen/logrus"
+	pflag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	Url                 string
-	ProjectId           string
-	ClusterName         string
-	OutfileName         string
-	LogfileName         string
-	PollInterval        time.Duration
-	LagInterval         time.Duration
-	MaxAuditEventsBatch int
-	PrometheusPort      int
-	ApiPort             int
-	LogLevel            string
-	vcfg                *viper.Viper
+	Url                           string
+	ProjectId                     string
+	ClusterName                   string
+	OutfileName                   string
+	LogfileName                   string
+	PollInterval                  time.Duration
+	LagInterval                   time.Duration
+	MaxAuditEventsBatch           int
+	PrometheusPort                int
+	ApiPort                       int
+	LogLevel                      string
+	SupressObjectConversionErrors bool
+	vcfg                          *viper.Viper
 }
 
 func New(configDir string, commandLine *pflag.FlagSet) (*Config, error) {
@@ -41,9 +42,10 @@ func New(configDir string, commandLine *pflag.FlagSet) (*Config, error) {
 	vcfg.SetDefault("prometheus.port", 25000)
 	vcfg.SetDefault("api.port", 8182)
 	vcfg.SetDefault("log_level", "info")
+	vcfg.SetDefault("supress_object_conversion_errors", false)
 
 	c := &Config{
-		vcfg:                      vcfg,
+		vcfg: vcfg,
 	}
 
 	if configDir != "" {
@@ -77,6 +79,7 @@ func (c *Config) UpdateValues() {
 	c.PrometheusPort = c.vcfg.GetInt("prometheus.port")
 	c.ApiPort = c.vcfg.GetInt("api.port")
 	c.LogLevel = c.vcfg.GetString("log_level")
+	c.SupressObjectConversionErrors = c.vcfg.GetBool("supress_object_conversion_errors")
 }
 
 func (c *Config) LoadFile(configDir string) error {
@@ -91,7 +94,7 @@ func (c *Config) LoadFile(configDir string) error {
 
 	_, err := os.Stat(path.Join(configDir, fmt.Sprintf("%s.%s", configName, configExt)))
 
-	if err == nil || ! os.IsNotExist(err) {
+	if err == nil || !os.IsNotExist(err) {
 		if err := c.vcfg.ReadInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 				return fmt.Errorf("Could not read config file: %v", err)
