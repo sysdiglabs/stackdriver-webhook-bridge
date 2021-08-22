@@ -28,6 +28,28 @@ pipeline {
             }
         }
     }
+    stage('Publish Docker image') {
+        environment {
+            GIT_HASH = GIT_COMMIT.take(7)
+        }
+        steps {
+            script {
+                env.VERSION_BUILD_NUMBER="v0.0.6-"+env.GIT_HASH
+                echo "tag ${env.VERSION_BUILD_NUMBER}"
+            }
+            withCredentials([usernamePassword(credentialsId: "docker-hub", passwordVariable: "DOCKER_PASSWORD", usernameVariable: "DOCKER_USERNAME")]) {
+                sh "docker login -u=${env.DOCKER_USERNAME} -p=${env.DOCKER_PASSWORD}"
+            }
+        }
+    }
+    stage('Cleanup') {
+      //clean
+      steps {
+        script {
+          sh "docker rm sysdiglabs/stackdriver-webhook-bridge || echo \\\"Builder image not found\\\""
+        }
+      }
+    }
   }
   post {
         always {
