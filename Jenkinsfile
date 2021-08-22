@@ -14,10 +14,19 @@ pipeline {
       steps {
         script {
           sh "ls ${env.WORKSPACE}"
+          sh "docker rm sysdiglabs/stackdriver-webhook-bridge || echo \\\"Builder image not found\\\""
         }
+
         //checkout
         git branch: "${BRANCH_NAME}", changelog: false, credentialsId:'github-jenkins-user-token', poll: false, url: 'https://github.com/sysdiglabs/stackdriver-webhook-bridge.git'
       }
+    }
+    stage('Build') {
+        steps {
+            script {
+                sh "make image"
+            }
+        }
     }
   }
   post {
