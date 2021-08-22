@@ -48,7 +48,8 @@ pipeline {
       //clean
       steps {
         script {
-          sh "docker rmi \$(docker images | grep 'stackdriver-webhook-bridge')"
+          sh "docker rmi sysdiglabs/stackdriver-webhook-bridge:latest"
+          sh "docker rmi sysdiglabs/stackdriver-webhook-bridge:${env.VERSION_BUILD_NUMBER}"
         }
       }
     }
