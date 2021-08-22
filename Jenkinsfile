@@ -48,7 +48,7 @@ pipeline {
       //clean
       steps {
         script {
-          sh "docker rmi $$(docker images | grep 'stackdriver-webhook-bridge')"
+          sh "docker rmi \$(docker images | grep 'stackdriver-webhook-bridge')"
         }
       }
     }
