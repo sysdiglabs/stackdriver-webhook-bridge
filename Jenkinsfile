@@ -41,6 +41,7 @@ pipeline {
             withCredentials([usernamePassword(credentialsId: "docker-hub", passwordVariable: "DOCKER_PASSWORD", usernameVariable: "DOCKER_USERNAME")]) {
                 sh "docker login -u=${env.DOCKER_USERNAME} -p=${env.DOCKER_PASSWORD}"
                 sh "docker tag sysdiglabs/stackdriver-webhook-bridge:latest sysdiglabs/stackdriver-webhook-bridge:${env.VERSION_BUILD_NUMBER}"
+                sh "docker push sysdiglabs/stackdriver-webhook-bridge:${env.VERSION_BUILD_NUMBER}"
             }
         }
     }
