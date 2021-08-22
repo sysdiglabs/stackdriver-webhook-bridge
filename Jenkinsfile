@@ -6,6 +6,7 @@ pipeline {
   environment {
     GITHUB_API_USER = 'draios-jenkins@sysdig.com'
     GITHUB_API_KEY = credentials('jenkins-github-token')
+    CURRENT_VERSION = "v0.0.6"
   }
 
   stages {
@@ -14,7 +15,7 @@ pipeline {
       steps {
         script {
           sh "ls ${env.WORKSPACE}"
-          sh "docker rm sysdiglabs/stackdriver-webhook-bridge || echo \\\"Builder image not found\\\""
+          sh "docker rm sysdiglabs/stackdriver-webhook-bridge:latest || echo \\\"Builder image not found\\\""
         }
 
         //checkout
@@ -34,11 +35,12 @@ pipeline {
         }
         steps {
             script {
-                env.VERSION_BUILD_NUMBER="v0.0.6-"+env.GIT_HASH
+                env.VERSION_BUILD_NUMBER=env.CURRENT_VERSION+"-"+env.GIT_HASH
                 echo "tag ${env.VERSION_BUILD_NUMBER}"
             }
             withCredentials([usernamePassword(credentialsId: "docker-hub", passwordVariable: "DOCKER_PASSWORD", usernameVariable: "DOCKER_USERNAME")]) {
                 sh "docker login -u=${env.DOCKER_USERNAME} -p=${env.DOCKER_PASSWORD}"
+                sh "docker tag sysdiglabs/stackdriver-webhook-bridge:latest sysdiglabs/stackdriver-webhook-bridge:${env.VERSION_BUILD_NUMBER}"
             }
         }
     }
@@ -46,26 +48,9 @@ pipeline {
       //clean
       steps {
         script {
-          sh "docker rm sysdiglabs/stackdriver-webhook-bridge || echo \\\"Builder image not found\\\""
+          sh "docker rmi $(docker images | grep 'stackdriver-webhook-bridge')"
         }
       }
     }
-  }
-  post {
-        always {
-      echo 'One way or another, I have finished'
-        }
-        success {
-      echo 'I succeeeded!'
-        }
-        unstable {
-      echo 'I am unstable :/'
-        }
-        failure {
-      echo 'I failed :('
-        }
-        changed {
-      echo 'Things were different before...'
-        }
   }
 }
