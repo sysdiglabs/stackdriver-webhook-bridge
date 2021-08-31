@@ -42,7 +42,7 @@ func New(configDir string, commandLine *pflag.FlagSet) (*Config, error) {
 	vcfg.SetDefault("prometheus.port", 25000)
 	vcfg.SetDefault("api.port", 8182)
 	vcfg.SetDefault("log_level", "info")
-	vcfg.SetDefault("supress_object_conversion_errors", false)
+	vcfg.SetDefault("supress_object_conversion_errors", true)
 
 	c := &Config{
 		vcfg: vcfg,

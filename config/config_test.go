@@ -25,7 +25,7 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Equal(t, 30*time.Second, cfg.LagInterval)
 	assert.Equal(t, 100, cfg.MaxAuditEventsBatch)
 	assert.Equal(t, "info", cfg.LogLevel)
-	assert.Equal(t, false, cfg.SupressObjectConversionErrors)
+	assert.Equal(t, true, cfg.SupressObjectConversionErrors)
 }
 
 func TestConfigCommandLineArgsAllArgs(t *testing.T) {
@@ -51,7 +51,7 @@ func TestConfigCommandLineArgsAllArgs(t *testing.T) {
 		"--poll_interval", "10s",
 		"--lag_interval", "20s",
 		"--log_level", "debug",
-		"--supress_object_conversion_errors", "true",
+		"--supress_object_conversion_errors", "false",
 	}))
 
 	cfg, err := config.New("", testArgs)
@@ -68,7 +68,7 @@ func TestConfigCommandLineArgsAllArgs(t *testing.T) {
 	assert.Equal(t, 20*time.Second, cfg.LagInterval)
 	assert.Equal(t, 100, cfg.MaxAuditEventsBatch)
 	assert.Equal(t, "debug", cfg.LogLevel)
-	assert.Equal(t, true, cfg.SupressObjectConversionErrors)
+	assert.Equal(t, false, cfg.SupressObjectConversionErrors)
 }
 
 func TestConfigCommandLineArgsNoArgs(t *testing.T) {
@@ -101,7 +101,7 @@ func TestConfigCommandLineArgsNoArgs(t *testing.T) {
 	assert.Equal(t, 30*time.Second, cfg.LagInterval)
 	assert.Equal(t, 100, cfg.MaxAuditEventsBatch)
 	assert.Equal(t, "info", cfg.LogLevel)
-	assert.Equal(t, false, cfg.SupressObjectConversionErrors)
+	assert.Equal(t, true, cfg.SupressObjectConversionErrors)
 }
 
 func TestConfigFilePrecedence(t *testing.T) {
