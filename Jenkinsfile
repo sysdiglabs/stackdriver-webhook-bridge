@@ -6,7 +6,7 @@ pipeline {
   environment {
     GITHUB_API_USER = 'draios-jenkins@sysdig.com'
     GITHUB_API_KEY = credentials('jenkins-github-token')
-    CURRENT_VERSION = "v0.0.6"
+    CURRENT_VERSION = "v0.0.7"
   }
 
   stages {
