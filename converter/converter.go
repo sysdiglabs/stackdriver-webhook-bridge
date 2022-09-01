@@ -136,6 +136,7 @@ func ConvertLogEntrytoAuditEvent(logEntry *logging.Entry, auditPayload *audit.Au
 			Username: auditPayload.AuthenticationInfo.PrincipalEmail,
 		},
 		SourceIPs:                []string{auditPayload.RequestMetadata.CallerIp},
+		UserAgent:                auditPayload.RequestMetadata.CallerSuppliedUserAgent,
 		ResponseStatus:           status,
 		RequestReceivedTimestamp: timestampMicro,
 		StageTimestamp:           timestampMicro,
