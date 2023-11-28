@@ -6,7 +6,7 @@ build/stackdriver-webhook-bridge:
 binary: build/stackdriver-webhook-bridge
 
 image: clean
-	docker build -t sysdiglabs/stackdriver-webhook-bridge -f Dockerfile .
+	docker build --rm -t sysdiglabs/stackdriver-webhook-bridge -f Dockerfile .
 
 clean:
 	rm -rf build/
